@@ -1,7 +1,7 @@
 import logging
 import re
 from telegram import Update
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
+from telegram.ext import Application, CommandHandler, MessageHandler, filters, CallbackContext
 import requests
 
 # Enable logging
@@ -19,7 +19,7 @@ ADLINKFLY_API_URL = "https://adlinkfly.com/api"
 URL_REGEX = re.compile(r'https?://[^\s]+')
 
 # Start command handler
-def start(update: Update, context: CallbackContext) -> None:
+async def start(update: Update, context: CallbackContext) -> None:
     start_message = (
         "🤖 Welcome to AdLinkFly Bulk Link Shortener Bot!\n\n"
         "📌 **How to use:**\n"
@@ -30,10 +30,10 @@ def start(update: Update, context: CallbackContext) -> None:
         "/help - Get help\n\n"
         "Made with ❤️ by YourName"
     )
-    update.message.reply_text(start_message)
+    await update.message.reply_text(start_message)
 
 # Help command handler
-def help_command(update: Update, context: CallbackContext) -> None:
+async def help_command(update: Update, context: CallbackContext) -> None:
     help_message = (
         "🆘 **Help:**\n"
         "1. Send or forward me a message containing links.\n"
@@ -43,7 +43,7 @@ def help_command(update: Update, context: CallbackContext) -> None:
         "Input: `Check out https://example.com and https://anotherexample.com`\n"
         "Output: `Check out https://adlinkfly.com/abc123 and https://adlinkfly.com/xyz456`"
     )
-    update.message.reply_text(help_message)
+    await update.message.reply_text(help_message)
 
 # Function to shorten a single link using AdLinkFly API
 def shorten_link(link: str) -> str:
@@ -73,7 +73,7 @@ def process_text(text: str) -> str:
     return processed_text
 
 # Message handler for text messages
-def handle_message(update: Update, context: CallbackContext) -> None:
+async def handle_message(update: Update, context: CallbackContext) -> None:
     try:
         # Get the text from the message
         text = update.message.text
@@ -82,31 +82,26 @@ def handle_message(update: Update, context: CallbackContext) -> None:
         processed_text = process_text(text)
 
         # Send the processed text back to the user
-        update.message.reply_text(processed_text)
+        await update.message.reply_text(processed_text)
     except Exception as e:
         logger.error(f"Error handling message: {e}")
-        update.message.reply_text("❌ An error occurred while processing your message. Please try again.")
+        await update.message.reply_text("❌ An error occurred while processing your message. Please try again.")
 
 # Main function to start the bot
-def main() -> None:
-    # Create the Updater and pass it your bot's token
-    updater = Updater(TELEGRAM_BOT_TOKEN)
-
-    # Get the dispatcher to register handlers
-    dispatcher = updater.dispatcher
+async def main() -> None:
+    # Create the Application and pass it your bot's token
+    application = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
 
     # Register command handlers
-    dispatcher.add_handler(CommandHandler("start", start))
-    dispatcher.add_handler(CommandHandler("help", help_command))
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(CommandHandler("help", help_command))
 
     # Register message handler for text messages
-    dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, handle_message))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
     # Start the Bot
-    updater.start_polling()
-
-    # Run the bot until you send a signal to stop
-    updater.idle()
+    await application.run_polling()
 
 if __name__ == '__main__':
-    main()
+    import asyncio
+    asyncio.run(main())
