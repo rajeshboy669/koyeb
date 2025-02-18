@@ -5,6 +5,7 @@ from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 import requests
 from pymongo import MongoClient
+from pymongo.uri_parser import parse_uri
 
 # Enable logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
@@ -12,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 # Read environment variables
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "7754090875:AAFvORs24VyZojKEqoNoX4nD6kfYZOlzbW8")
-MONGODB_URI = os.getenv("MONGODB_URI", "mongodb+srv://aaroha:aaroha@cluster0.pnzoc.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0") # Example: "mongodb+srv://user:password@cluster.mongodb.net/dbname"
+MONGODB_URI = os.getenv("MONGODB_URI", "mongodb+srv://aaroha:aaroha@cluster0.pnzoc.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0") 
 
 # Validate environment variables
 if not TELEGRAM_BOT_TOKEN:
@@ -20,10 +21,18 @@ if not TELEGRAM_BOT_TOKEN:
 if not MONGODB_URI:
     raise ValueError("MONGODB_URI environment variable is not set.")
 
-# Initialize MongoDB client
+# Parse MongoDB URI to extract database name
+parsed_uri = parse_uri(MONGODB_URI)
+db_name = parsed_uri.get("database")
+if not db_name:
+    raise ValueError("Database name not found in MONGODB_URI.")
+
+# Initialize MongoDB client and database
 client = MongoClient(MONGODB_URI)
-db = client.get_database()
+db = client[db_name]
 users_collection = db["users"]
+
+# Rest of the code remains the same...
 
 # AdLinkFly API endpoint
 ADLINKFLY_API_URL = "https://adlinkfly.com/api"
