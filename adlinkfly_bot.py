@@ -10,8 +10,8 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 logger = logging.getLogger(__name__)
 
 # Replace with your AdLinkFly API key and Telegram bot token
-ADLINKFLY_API_KEY = "YOUR_ADLINKFLY_API_KEY"
-TELEGRAM_BOT_TOKEN = "YOUR_TELEGRAM_BOT_TOKEN"
+ADLINKFLY_API_KEY = ("ADLINKFLY_API_KEY", "2bbd12e120e80eb80aee07dcaac34d3310ecdc48")
+TELEGRAM_BOT_TOKEN = ("TELEGRAM_BOT_TOKEN", "7754090875:AAFvORs24VyZojKEqoNoX4nD6kfYZOlzbW8")
 
 # AdLinkFly API endpoint
 ADLINKFLY_API_URL = "https://adlinkfly.com/api"
