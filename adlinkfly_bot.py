@@ -1,6 +1,6 @@
 import logging
 import re
-import asyncio
+import os
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 import requests
@@ -9,9 +9,15 @@ import requests
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Replace with your AdLinkFly API key and Telegram bot token
-ADLINKFLY_API_KEY = ("ADLINKFLY_API_KEY", "2bbd12e120e80eb80aee07dcaac34d3310ecdc48")
-TELEGRAM_BOT_TOKEN = ("TELEGRAM_BOT_TOKEN", "7754090875:AAFvORs24VyZojKEqoNoX4nD6kfYZOlzbW8")
+# Read environment variables
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "7754090875:AAFvORs24VyZojKEqoNoX4nD6kfYZOlzbW8")
+ADLINKFLY_API_KEY = os.getenv("ADLINKFLY_API_KEY", "2bbd12e120e80eb80aee07dcaac34d3310ecdc48")
+
+# Validate environment variables
+if not TELEGRAM_BOT_TOKEN:
+    raise ValueError("TELEGRAM_BOT_TOKEN environment variable is not set.")
+if not ADLINKFLY_API_KEY:
+    raise ValueError("ADLINKFLY_API_KEY environment variable is not set.")
 
 # AdLinkFly API endpoint
 ADLINKFLY_API_URL = "https://adlinkfly.com/api"
