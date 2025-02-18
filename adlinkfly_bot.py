@@ -1,7 +1,8 @@
 import logging
 import re
+import asyncio
 from telegram import Update
-from telegram.ext import Application, CommandHandler, MessageHandler, filters, CallbackContext
+from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 import requests
 
 # Enable logging
@@ -19,7 +20,7 @@ ADLINKFLY_API_URL = "https://adlinkfly.com/api"
 URL_REGEX = re.compile(r'https?://[^\s]+')
 
 # Start command handler
-async def start(update: Update, context: CallbackContext) -> None:
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     start_message = (
         "🤖 Welcome to AdLinkFly Bulk Link Shortener Bot!\n\n"
         "📌 **How to use:**\n"
@@ -33,7 +34,7 @@ async def start(update: Update, context: CallbackContext) -> None:
     await update.message.reply_text(start_message)
 
 # Help command handler
-async def help_command(update: Update, context: CallbackContext) -> None:
+async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     help_message = (
         "🆘 **Help:**\n"
         "1. Send or forward me a message containing links.\n"
@@ -48,60 +49,34 @@ async def help_command(update: Update, context: CallbackContext) -> None:
 # Function to shorten a single link using AdLinkFly API
 def shorten_link(link: str) -> str:
     try:
-        params = {
-            "api": ADLINKFLY_API_KEY,
-            "url": link
-        }
+        params = {"api": ADLINKFLY_API_KEY, "url": link}
         response = requests.get(ADLINKFLY_API_URL, params=params)
-        if response.status_code == 200:
-            return response.json().get("shortenedUrl", link)  # Return shortened URL or original if failed
-        else:
-            return link  # Return original link if API fails
+        return response.json().get("shortenedUrl", link) if response.status_code == 200 else link
     except Exception as e:
         logger.error(f"Error shortening link: {e}")
-        return link  # Return original link if any error occurs
+        return link
 
-# Function to process text and shorten all links
+# Process text and replace links
 def process_text(text: str) -> str:
-    def replace_link(match):
-        original_link = match.group(0)
-        shortened_link = shorten_link(original_link)
-        return shortened_link
-
-    # Find and replace all links in the text
-    processed_text = URL_REGEX.sub(replace_link, text)
-    return processed_text
+    return URL_REGEX.sub(lambda match: shorten_link(match.group(0)), text)
 
 # Message handler for text messages
-async def handle_message(update: Update, context: CallbackContext) -> None:
+async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     try:
-        # Get the text from the message
         text = update.message.text
-
-        # Process the text to shorten links
         processed_text = process_text(text)
-
-        # Send the processed text back to the user
         await update.message.reply_text(processed_text)
     except Exception as e:
         logger.error(f"Error handling message: {e}")
-        await update.message.reply_text("❌ An error occurred while processing your message. Please try again.")
+        await update.message.reply_text("❌ An error occurred. Please try again.")
 
-# Main function to start the bot
-async def main() -> None:
-    # Create the Application and pass it your bot's token
+# Main function
+def main() -> None:
     application = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
-
-    # Register command handlers
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("help", help_command))
-
-    # Register message handler for text messages
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
-
-    # Start the Bot
-    await application.run_polling()
+    application.run_polling()
 
 if __name__ == '__main__':
-    import asyncio
-    asyncio.run(main())
+    main()
