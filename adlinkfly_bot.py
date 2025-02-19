@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 # Read environment variables
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "7754090875:AAFvORs24VyZojKEqoNoX4nD6kfYZOlzbW8")
-MONGODB_URI = os.getenv("MONGODB_URI", "mongodb+srv://aaroha:aaroha@cluster0.pnzoc.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0") 
+MONGODB_URI = os.getenv("MONGODB_URI", "mongodb+srv://aaroha:aaroha@cluster0.pnzoc.mongodb.net/Cluster0?retryWrites=true&w=majority&appName=Cluster0") 
 
 # Validate environment variables
 if not TELEGRAM_BOT_TOKEN:
