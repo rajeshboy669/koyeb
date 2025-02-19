@@ -3,8 +3,7 @@ import re
 import os
 import aiohttp
 import asyncio
-from telegram import Update
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 from pymongo import MongoClient
 from pymongo.uri_parser import parse_uri
@@ -76,7 +75,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         "/start - Start the bot\n"
         "/help - Get help\n"
         "/setapi <API_KEY> - Set your AdLinkFly API key\n"
-        "/logout - Remove your API key\n\n"
+        "/logout - Remove your API key\n"
+        "/account - Get your account details\n\n"
         "🔽 Click the button below to **Sign Up**:"
     )
 
@@ -102,36 +102,61 @@ async def logout(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     context.user_data.pop("api_key", None)
     await update.message.reply_text("You have been logged out.")
 
-async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def get_account_info(api_key: str) -> dict:
     try:
-        user_id = update.message.from_user.id
-        api_key = context.user_data.get("api_key")
-        if not api_key:
-            user_data = users_collection.find_one({"user_id": user_id})
-            api_key = user_data.get("api_key") if user_data else None
-            if api_key:
-                context.user_data["api_key"] = api_key
-            else:
-                await update.message.reply_text("Please set your AdLinkFly API key using /setapi.")
-                return
+        url = f"{ADLINKFLY_API_URL}/user"
+        headers = {"Authorization": f"Bearer {api_key}"}
 
-        text = update.message.text or update.message.caption
-        if text:
-            processed_text = await process_text(text, api_key)
-            if update.message.text:
-                await update.message.reply_text(processed_text)
-            elif update.message.caption:
-                await update.message.reply_photo(update.message.photo[-1].file_id, caption=processed_text)
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url, headers=headers) as response:
+                if response.status == 200:
+                    return await response.json()
+                return {"error": "Failed to fetch account details."}
     except Exception as e:
-        logger.error(f"Error handling message: {e}")
-        await update.message.reply_text("An error occurred. Please try again.")
+        logger.error(f"Error fetching account info: {e}")
+        return {"error": "An error occurred while retrieving account information."}
+
+async def account(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    user_id = update.message.from_user.id
+    api_key = context.user_data.get("api_key")
+
+    if not api_key:
+        user_data = users_collection.find_one({"user_id": user_id})
+        api_key = user_data.get("api_key") if user_data else None
+        if api_key:
+            context.user_data["api_key"] = api_key
+        else:
+            await update.message.reply_text("❌ Please set your API key using /setapi.")
+            return
+
+    account_info = await get_account_info(api_key)
+
+    if "error" in account_info:
+        await update.message.reply_text(f"❌ {account_info['error']}")
+        return
+
+    balance = account_info.get("balance", "N/A")
+    total_earnings = account_info.get("total_earnings", "N/A")
+    referral_earnings = account_info.get("referral_earnings", "N/A")
+    total_views = account_info.get("total_views", "N/A")
+
+    profile_message = (
+        f"👤 **Account Information**:\n"
+        f"💰 **Balance:** {balance}\n"
+        f"💵 **Total Earnings:** {total_earnings}\n"
+        f"🤝 **Referral Earnings:** {referral_earnings}\n"
+        f"👀 **Total Views:** {total_views}\n\n"
+        f"📌 Use /logout to remove your API key."
+    )
+
+    await update.message.reply_text(profile_message)
 
 def main() -> None:
     application = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("setapi", set_api_key))
     application.add_handler(CommandHandler("logout", logout))
-    application.add_handler(MessageHandler(filters.TEXT | filters.PHOTO, handle_message))
+    application.add_handler(CommandHandler("account", account))
     application.run_polling()
 
 if __name__ == '__main__':
