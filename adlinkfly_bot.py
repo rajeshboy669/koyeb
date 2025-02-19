@@ -62,7 +62,24 @@ async def process_text(text: str, api_key: str) -> str:
     return text
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    await update.message.reply_text("Welcome to AdLinkFly Bulk Link Shortener Bot! Use /setapi <API_KEY> to get started.")
+    keyboard = [[InlineKeyboardButton("🔗 Sign Up on Shortner.in", url="https://shortner.in/auth/signup")]]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
+    start_message = (
+        "🤖 Welcome to AdLinkFly Bulk Link Shortener Bot!\n\n"
+        "📌 **How to use:**\n"
+        "1. Set your AdLinkFly API key using the /setapi command.\n"
+        "2. Send or forward me a message containing links.\n"
+        "3. I will find all the links, shorten them, and return the text with shortened links.\n\n"
+        "⚙️ **Commands:**\n"
+        "/start - Start the bot\n"
+        "/help - Get help\n"
+        "/setapi <API_KEY> - Set your AdLinkFly API key\n"
+        "/logout - Remove your API key\n\n"
+        "🔽 Click the button below to **Sign Up**:"
+    )
+
+    await update.message.reply_text(start_message, reply_markup=reply_markup)
 
 async def set_api_key(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     try:
