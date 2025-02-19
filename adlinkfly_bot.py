@@ -105,11 +105,12 @@ async def logout(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 async def get_account_info(api_key: str) -> dict:
     try:
         url = f"{ADLINKFLY_API_URL}?api={api_key}"
-        # Send GET request without authorization header as it's not required by the documentation
         async with aiohttp.ClientSession() as session:
             async with session.get(url) as response:
                 if response.status == 200:
-                    return await response.json()
+                    data = await response.json()
+                    logger.info(f"API Response: {data}")  # Log the full response for debugging
+                    return data
                 else:
                     logger.error(f"Failed to fetch account details. Status code: {response.status}")
                     return {"error": "Failed to fetch account details."}
