@@ -147,11 +147,11 @@ async def main_async():
     application.add_handler(CommandHandler("login", login))
     application.add_handler(CommandHandler("logout", logout))
 
-    # Run both the health check server and the Telegram polling concurrently
-    await asyncio.gather(
-        start_health_server(),
-        application.run_polling(),
-    )
+    # Start the health check server in the background
+    asyncio.create_task(start_health_server())
+
+    # Run the bot with long polling
+    await application.run_polling()
 
 if __name__ == "__main__":
     asyncio.run(main_async())
