@@ -3,8 +3,9 @@ import re
 import os
 import aiohttp
 import asyncio
+from aiohttp import web
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
+from telegram.ext import Application, CommandHandler, ContextTypes
 from pymongo import MongoClient
 from pymongo.uri_parser import parse_uri
 
@@ -61,6 +62,20 @@ async def process_text(text: str, api_key: str) -> str:
         text = text.replace(match.group(0), shortened)
     return text
 
+# Health check server
+async def health_check(request):
+    return web.Response(text="OK")
+
+async def start_health_server():
+    app = web.Application()
+    app.router.add_get("/", health_check)
+    runner = web.AppRunner(app)
+    await runner.setup()
+    site = web.TCPSite(runner, "0.0.0.0", 8000)
+    await site.start()
+    logger.info("Health check server started on port 8000.")
+
+# Telegram bot functions
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     keyboard = [[InlineKeyboardButton("🔗 Sign Up on Shortner.in", url="https://shortner.in/auth/signup")]]
     reply_markup = InlineKeyboardMarkup(keyboard)
@@ -123,14 +138,20 @@ async def logout(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     context.user_data.pop("api_key", None)
     await update.message.reply_text("You have been logged out.")
 
-def main() -> None:
+async def main_async():
+    # Build your Telegram bot application
     application = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("help", help))
     application.add_handler(CommandHandler("features", features))
     application.add_handler(CommandHandler("login", login))
     application.add_handler(CommandHandler("logout", logout))
-    application.run_polling()
 
-if __name__ == '__main__':
-    main()
+    # Run both the health check server and the Telegram polling concurrently
+    await asyncio.gather(
+        start_health_server(),
+        application.run_polling(),
+    )
+
+if __name__ == "__main__":
+    asyncio.run(main_async())
