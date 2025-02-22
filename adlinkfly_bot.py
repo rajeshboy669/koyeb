@@ -1,13 +1,13 @@
 import logging
-import re
 import os
+import re
 import aiohttp
 import asyncio
-from aiohttp import web
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, ContextTypes
 from pymongo import MongoClient
 from pymongo.uri_parser import parse_uri
+from aiohttp import web
 
 # Enable logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
@@ -62,24 +62,9 @@ async def process_text(text: str, api_key: str) -> str:
         text = text.replace(match.group(0), shortened)
     return text
 
-# Health check server
-async def health_check(request):
-    return web.Response(text="OK")
-
-async def start_health_server():
-    app = web.Application()
-    app.router.add_get("/", health_check)
-    runner = web.AppRunner(app)
-    await runner.setup()
-    site = web.TCPSite(runner, "0.0.0.0", 8000)
-    await site.start()
-    logger.info("Health check server started on port 8000.")
-
-# Telegram bot functions
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     keyboard = [[InlineKeyboardButton("🔗 Sign Up on Shortner.in", url="https://shortner.in/auth/signup")]]
     reply_markup = InlineKeyboardMarkup(keyboard)
-
     start_message = (
         "🤖 Welcome to AdLinkFly Bulk Link Shortener Bot!\n\n"
         "📌 **How to use:**\n"
@@ -93,7 +78,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         "/logout - Remove your API key\n\n"
         "🔽 Click the button below to **Sign Up**:"
     )
-
     await update.message.reply_text(start_message, reply_markup=reply_markup)
 
 async def help(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -138,8 +122,11 @@ async def logout(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     context.user_data.pop("api_key", None)
     await update.message.reply_text("You have been logged out.")
 
-async def main_async():
-    # Build your Telegram bot application
+# Health check server
+async def health_check(request):
+    return web.Response(text="OK")
+
+async def main_async() -> None:
     application = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("help", help))
@@ -147,11 +134,16 @@ async def main_async():
     application.add_handler(CommandHandler("login", login))
     application.add_handler(CommandHandler("logout", logout))
 
-    # Start the health check server in the background
-    asyncio.create_task(start_health_server())
+    # Start health check server on port 8000
+    app = web.Application()
+    app.add_routes([web.get('/', health_check)])
+    runner = web.AppRunner(app)
+    await runner.setup()
+    site = web.TCPSite(runner, "0.0.0.0", 8000)
+    await site.start()
 
-    # Run the bot with long polling
+    # Run Telegram bot polling
     await application.run_polling()
 
-if __name__ == "__main__":
-    asyncio.run(main_async())
+if __name__ == '__main__':
+    asyncio.run(main_async())  # Start the async main function
