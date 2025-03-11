@@ -146,4 +146,6 @@ async def main_async() -> None:
     await application.run_polling()
 
 if __name__ == '__main__':
-    asyncio.run(main_async())  # Start the async main function
+    # Use the current event loop instead of asyncio.run() to avoid issues in cloud environments
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(main_async())
